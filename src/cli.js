@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+import{readFile,writeFile}from'node:fs/promises';import{resolve}from'node:path';import{checkCircuit,toSARIF,toText}from'./index.js';
+const[command,file,...args]=process.argv.slice(2);if(command!=='check'||!file){console.log('Usage: oc-erc check CIRCUIT.json [--format text|json|sarif] [--output FILE] [--disable rule-a,rule-b]');process.exit(command?1:0);}
+const get=(name,fallback)=>{const index=args.indexOf(`--${name}`);return index>=0?args[index+1]:fallback;};const format=get('format','text'),output=get('output'),disabledRules=get('disable','').split(',').filter(Boolean),path=resolve(file);const circuit=JSON.parse(await readFile(path,'utf8')),report=checkCircuit(circuit,{disabledRules});const rendered=format==='json'?JSON.stringify(report,null,2):format==='sarif'?JSON.stringify(toSARIF(report,{uri:file}),null,2):toText(report);if(output)await writeFile(resolve(output),`${rendered}\n`);else console.log(rendered);process.exitCode=report.valid?0:1;
